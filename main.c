@@ -3,70 +3,73 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-enum colour {
-        RED_ON_BLACK,
-        WHITE_ON_BLACK
+enum FLAGS {
+        INV,
+        ADD,
+        SUB,
+        MULT,
+        DIV
 };
 
-void set_col(HANDLE console, enum colour col);
-
-void log_err(HANDLE console, char *argc, ...);
-
-
-void set_col(HANDLE console, enum colour col) {
-        int colour;
-        switch (col) {
-        case RED_ON_BLACK: 
-                colour = FOREGROUND_RED;
-                break;
-        case WHITE_ON_BLACK:
-                colour = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
-                break;
-        }
-        SetConsoleTextAttribute(console, colour);
-}
-
-void log_err(HANDLE console, char *message, ...) {
-        set_col(console, RED_ON_BLACK);
-
-        va_list argptr;
-        va_start(argptr, message);
-        vprintf(message, argptr);
-        va_end(argptr);
-
-        set_col(console, WHITE_ON_BLACK);
-        printf("\n");
-}
-
-// argc is the number of arguments you recieve
-// argv[0] is the program name
-// all others are as given
-// hello is interpreted as hello
-// "hello" is interpreted as hello
-// 'hello' is interpreted as 'hello'
-// arguments are delimited by spaces, although spaces are ignored if part of a block enclosed in double quotes
 int main(int argc, char *argv[]) {
-        HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
-        
-        int sum = 0;
-        int add = 0;
+        int num_count = 0;
+        enum FLAGS type;
         for (int i = 1; i < argc; ++i) {
-                add = atoi(argv[i]);
-                if (0 == add) {
-                        log_err(console, "ERROR: invalid symbol at '%s'", argv[i]);
+                if ('-' == argv[i][0]) {
+                        switch (argv[i][1]) {
+                        case 'a':
+                                type = ADD;
+                                break;
+                        case 's':
+                                type = SUB;
+                                break;
+                        case 'm':
+                                type = MULT;
+                                break;
+                        case 'd':
+                                type = DIV;
+                                break;
+                        default:
+                                printf("ERROR: invalid flag at symbol '%s'\n", argv[i]);
+                                return 0;
+                        }
+                } else {
+                        num_count++;
+                }
+        }
+        
+        int nums[num_count];
+        for (int i = 0; i < num_count; ++i) {
+                nums[i] = atoi(argv[i + 2]);
+                if (0 == nums[i]) {
+                        printf("ERROR: invalid argument at symbol '%s'\n", argv[i]);
                         return 0;
                 }
-                sum += add;
         }
 
-        printf("the sum is %d\n", sum);
+        int total = nums[0];
+
+        for (int i = 1; i < num_count; ++i) {
+                switch (type) {
+                case ADD:
+                        total += nums[i];
+                        break;
+                case SUB:
+                        total -= nums[i];
+                        break;
+                case MULT:
+                        total *= nums[i];
+                        break;
+                case DIV:
+                        total /= nums[i];
+                        break;
+                default:
+                        break;
+                }
+        }
+
+        printf("type is: '%d'\n", type);
+        printf("total is: '%d'\n", total);
 
         return 0;
-
-        // strcmp returns 0 if a==b, otherwise a>b or whatever, so we check for false
-        // if (!strcmp(argv[1], "hello")) {
-        //         printf("same\n");
-        // } else {
-        //         printf("diff\n");
-        // }
 }
