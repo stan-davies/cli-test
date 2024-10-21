@@ -1,9 +1,11 @@
 #include <stdio.h>
-#include <windows.h>
 #include <stdlib.h>
-#include <stdarg.h>
+#include <unistd.h>
 
-enum FLAGS {
+#define TRUE  1
+#define FALSE 0
+
+enum OPERATIONS {
         INV,
         ADD,
         SUB,
@@ -11,40 +13,88 @@ enum FLAGS {
         DIV
 };
 
-int main(int argc, char *argv[]) {
-        int num_count = 0;
-        enum FLAGS type;
-        for (int i = 1; i < argc; ++i) {
-                if ('-' == argv[i][0]) {
-                        switch (argv[i][1]) {
-                        case 'a':
-                                type = ADD;
-                                break;
-                        case 's':
-                                type = SUB;
-                                break;
-                        case 'm':
-                                type = MULT;
-                                break;
-                        case 'd':
-                                type = DIV;
-                                break;
-                        default:
-                                printf("ERROR: invalid flag at symbol '%s'\n", argv[i]);
-                                return 0;
-                        }
-                } else {
-                        num_count++;
+int to_op(char *c) {
+        switch (*c) {
+        case 'a':
+                return ADD;
+        case 's':
+                return SUB;
+        case 'm':
+                return MULT;
+        case 'd':
+                return DIV;
+        default:
+                return INV;
+        }
+}
+
+// string is null terminated
+int check_num(char *c) {
+        int i = 0;
+        char curr_c = c[i];
+
+        // until null terminator is found
+        while (0 != curr_c) {
+                if (curr_c > 57 || curr_c < 48) {
+                        return FALSE;
+                }
+                i++;
+                curr_c = c[i];
+        }
+
+        return TRUE;
+}
+
+int main(int argc, char **argv) {
+        enum OPERATIONS type;
+        int opt;
+        // each character is an option, a : indicates that an argument should follow this option
+        // :: would indicate that an argument COULD follow this optional (i.e. it is optional)
+        // obviously options do not have to be given, otherwise they would not be options
+        // any other option being given yields '<program>: invalid option -- <opt>', and it will then go into default
+        while ((opt = getopt(argc, argv, "o:")) != -1) {
+                switch (opt) {
+                case 'o':
+                        type = to_op(optarg);
+                        break;
+                default:
+                        printf("ERROR: unexpected option at symbol '%s'\n", opt);
+                        break;
                 }
         }
-        
-        int nums[num_count];
-        for (int i = 0; i < num_count; ++i) {
-                nums[i] = atoi(argv[i + 2]);
-                if (0 == nums[i]) {
-                        printf("ERROR: invalid argument at symbol '%s'\n", argv[i]);
-                        return 0;
+
+        if (INV == type) {
+                printf("ERROR: invalid operation chosen\n");
+                return 0;
+        }
+
+
+
+
+        int num_count = 0;
+
+        for (int i = 1; i < argc; ++i) {
+                if (FALSE == check_num(argv[i])) {
+                        continue;
                 }
+
+                num_count++;
+        }
+
+        int *nums = (int *)malloc(num_count * sizeof(int));
+
+        int n_i = 0;
+        for (int a_i = 1; a_i < argc; ++a_i) {
+                if (FALSE == check_num(argv[a_i])) {
+                        continue;
+                }
+
+                nums[n_i] = atoi(argv[a_i]);
+
+                if (0 == nums[n_i]) {
+                        printf("ERROR: invalid argument at symbol '%s'\n", argv[a_i]);
+                }
+                n_i++;
         }
 
         int total = nums[0];
@@ -64,12 +114,12 @@ int main(int argc, char *argv[]) {
                         total /= nums[i];
                         break;
                 default:
-                        break;
+                        printf("ERROR: invalid operation\n");
+                        return 0;
                 }
         }
 
-        printf("type is: '%d'\n", type);
-        printf("total is: '%d'\n", total);
+        printf("total is: %d\n", total);
 
         return 0;
 }
